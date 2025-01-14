@@ -87,7 +87,7 @@ with pyodbc.connect('DRIVER='+driver+';SERVER=tcp:'+server+';PORT=1433;DATABASE=
             n = {
                 "idArtist": idArtist,
                 "primaryName": primaryName,
-                "birthDate": birthYear
+                "birthYear": birthYear
             }
             importData.append(n)
             i += 1
