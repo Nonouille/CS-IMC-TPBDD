@@ -32,9 +32,9 @@ with pyodbc.connect('DRIVER='+driver+';SERVER=tcp:'+server+';PORT=1433;DATABASE=
 
     # Films
     exportedCount = 0
-    cursor.execute("SELECT COUNT(1) FROM TFilm")
+    cursor.execute("SELECT COUNT(1) FROM tFilm")
     totalCount = cursor.fetchval()
-    cursor.execute("SELECT idFilm, primaryTitle, startYear FROM TFilm")
+    cursor.execute("SELECT idFilm, primaryTitle, startYear FROM tFilm")
     while True:
         importData = []
         rows = cursor.fetchmany(BATCH_SIZE)
@@ -44,7 +44,16 @@ with pyodbc.connect('DRIVER='+driver+';SERVER=tcp:'+server+';PORT=1433;DATABASE=
         i = 0
         for row in rows:
             # Créer un objet Node avec comme label Film et les propriétés adéquates
-            # A COMPLETER
+            idFilm = row[0]  # Extract the first value as idFilm
+            primaryTitle = row[1]  # Extract the second value as primaryTitle
+            startYear = row[2]  # Extract the third value as startYear
+
+            # Créer un objet Node avec comme label Film et les propriétés adéquates
+            n = {
+                "idFilm": idFilm,
+                "primaryTitle": primaryTitle,
+                "startYear": startYear
+            }
             importData.append(n)
             i += 1
 
@@ -56,14 +65,45 @@ with pyodbc.connect('DRIVER='+driver+';SERVER=tcp:'+server+';PORT=1433;DATABASE=
             print(error)
 
     # Names
-    # En vous basant sur ce qui a été fait dans la section précédente, exportez les données de la table tNames
-    # A COMPLETER
+    # En vous basant sur ce qui a été fait dans la section précédente, exportez les données de la table tArtist
+    exportedCount = 0
+    cursor.execute("SELECT COUNT(1) FROM tArtist")
+    totalCount = cursor.fetchval()
+    cursor.execute("SELECT idArtist, primaryName, birthYear FROM tArtist")
+    while True:
+        importData = []
+        rows = cursor.fetchmany(BATCH_SIZE)
+        if not rows:
+            break
+
+        i = 0
+        for row in rows:
+            # Créer un objet Node avec comme label Film et les propriétés adéquates
+            idArtist = row[0]  # Extract the first value as idFilm
+            primaryName = row[1]  # Extract the second value as primaryTitle
+            birthYear = row[2]  # Extract the third value as startYear
+
+            # Créer un objet Node avec comme label Film et les propriétés adéquates
+            n = {
+                "idArtist": idArtist,
+                "primaryName": primaryName,
+                "birthDate": birthYear
+            }
+            importData.append(n)
+            i += 1
+
+        try:
+            create_nodes(graph.auto(), importData, labels={"Artist"})
+            exportedCount += len(rows)
+            print(f"{exportedCount}/{totalCount} artists records exported to Neo4j")
+        except Exception as error:
+            print(error)
 
     try:
         print("Indexing Film nodes...")
-        graph.run("CREATE INDEX ON :Film(idFilm)")
+        graph.run("CREATE INDEX film_id_index FOR (f:Film) ON (f.idFilm)")
         print("Indexing Name (Artist) nodes...")
-        graph.run("CREATE INDEX ON :Artist(idArtist)")
+        graph.run("CREATE INDEX artist_id_index FOR (a:Artist) ON (a.idArtist)")
     except Exception as error:
         print(error)
 
@@ -89,8 +129,8 @@ with pyodbc.connect('DRIVER='+driver+';SERVER=tcp:'+server+';PORT=1433;DATABASE=
                 # (les tuples nécessaires ont déjà été créés ci-dessus dans la boucle for précédente)
                 # https://py2neo.org/2021.1/bulk/index.html
                 # ATTENTION: remplacez les espaces par des _ pour nommer les types de relation
-                # A COMPLETER
-                None # Remplacez None par votre code
+                new_cat = cat.replace(' ','_').upper()
+                create_relationships(graph.auto(), importData[cat], new_cat, start_node_key=("Artist",'idArtist'), end_node_key=("Film","idFilm"))
             exportedCount += len(rows)
             print(f"{exportedCount}/{totalCount} relationships exported to Neo4j")
         except Exception as error:
